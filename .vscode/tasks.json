@@ -45,11 +45,11 @@
         },
         {
             "type": "shell",
-            "label": "CubeProg: Flash project (SWD)",
+            "label": "CubeProg: Flash project jlink (SWD)",
             "command": "STM32_Programmer_CLI",
             "args": [
                 "--connect",
-                "port=swd",
+                "port=jlink",
                 "--download",
                 "${command:cmake.launchTargetPath}",
                 // Let CMake extension decide executable: "${command:cmake.launchTargetPath}",
