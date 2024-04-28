@@ -19,13 +19,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c.h"
-#include "stm32f1xx_hal_tim.h"
 #include "tim.h"
-#include "gpio.h" 
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "buzzer.h"
+#include "note.h"
+#include "interface.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,7 +47,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+extern struct user_interface_t GUI;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -57,6 +58,21 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void Solitary_brave(void)
+{
+	uint16_t solitary_brave[]=
+	{
+		M6,50,M7,50,H1,50,H2,50,M7,50,H1,50,H1,100,Z0,10,	//爱你孤身走暗巷
+		H1,50,M7,50,H1,50,H2,50,M7,50,H1,50,H1,100,Z0,10, 	//爱你不跪的模样
+		H1,50,H2,50,H3,50,H2,50,H3,50,H2,50,H3,100,H3,50,H3,50,H2,50,H3,100,H5,100,H3,100,Z0,10 //爱你对峙过绝望不肯哭一场
+	};
+	int length = sizeof(solitary_brave)/sizeof(solitary_brave[0]);
+	for(uint8_t i=0;i<(length/2);i++)
+	{
+		BUZZER_PlayNote(solitary_brave[i*2]);
+		HAL_Delay(5*solitary_brave[i*2+1]);
+	}
+}
 
 /* USER CODE END 0 */
 
@@ -92,8 +108,8 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  __HAL_TIM_SET_PRESCALER(&htim1, 274);
-  HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
+  BUZZER_SetLoudness(100);
+  Solitary_brave();
   /* USER CODE END 2 */
 
   /* Infinite loop */

@@ -73,6 +73,8 @@ void Error_Handler(void);
 #define BT7_GPIO_Port GPIOA
 #define BT8_Pin GPIO_PIN_12
 #define BT8_GPIO_Port GPIOA
+#define BT_MENU_Pin GPIO_PIN_15
+#define BT_MENU_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 
