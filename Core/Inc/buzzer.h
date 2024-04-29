@@ -7,7 +7,7 @@ extern "C" {
 
 #include "tim.h"
 
-#define BUZZER_TIM htim1
+#define BUZZER_TIM (&htim1)
 #define BUZZER_TIM_CHANNEL TIM_CHANNEL_1
 
 void BUZZER_Start(void);
