@@ -465,6 +465,8 @@ void RecordPlayer_loop(void) {
         }
         BUZZER_PlayNote(record_note_sheet[note_counter * 2]);
         HAL_Delay(10 * record_note_sheet[note_counter * 2 + 1]);
+        BUZZER_Stop();
+        HAL_Delay(10);
         note_counter++;
       }
 
