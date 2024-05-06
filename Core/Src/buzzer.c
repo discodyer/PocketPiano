@@ -56,3 +56,12 @@ void BUZZER_PlayNote(uint32_t note) {
   }
   BUZZER_Start();
 }
+
+uint8_t BUZZER_Player(uint16_t *note_sheet, uint16_t counter) {
+  if (note_sheet == NULL && note_sheet[counter * 2] == 1) {
+    return 0;
+  }
+  BUZZER_PlayNote(note_sheet[counter * 2]);
+  // HAL_Delay(note_sheet[counter * 2 + 1]);
+  return note_sheet[counter * 2 + 1];
+}

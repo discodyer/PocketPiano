@@ -52,37 +52,20 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-extern struct user_interface_t GUI;
+uint16_t record_note_sheet[256] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void Piano_loop(void);
+void MusicPlayer_loop(void);
+void Record_loop(void);
+void RecordPlayer_loop(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void Solitary_brave(void) {
-  uint16_t
-      solitary_brave
-          [] =
-              {
-                  M6, 50,  M7, 50,  H1, 50,  H2, 50, M7, 50,
-                  H1, 50,  H1, 100, Z0, 10, // 爱你孤身走暗巷
-                  H1, 50,  M7, 50,  H1, 50,  H2, 50, M7, 50,
-                  H1, 50,  H1, 100, Z0, 10, // 爱你不跪的模样
-                  H1, 50,  H2, 50,  H3, 50,  H2, 50, H3, 50,
-                  H2, 50,  H3, 100, H3, 50,  H3, 50, H2, 50,
-                  H3, 100, H5, 100, H3, 100, Z0, 10 // 爱你对峙过绝望不肯哭一场
-              };
-  int length = sizeof(solitary_brave) / sizeof(solitary_brave[0]);
-  for (uint8_t i = 0; i < (length / 2); i++) {
-    BUZZER_PlayNote(solitary_brave[i * 2]);
-    HAL_Delay(5 * solitary_brave[i * 2 + 1]);
-  }
-}
-
 /* USER CODE END 0 */
 
 /**
@@ -117,7 +100,7 @@ int main(void) {
   MX_I2C1_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  BUZZER_SetLoudness(100);
+  BUZZER_SetLoudness(10); // 设置音量 1~999
   // Solitary_brave();
 
   ssd1306_init();
@@ -127,7 +110,10 @@ int main(void) {
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
-    Piano_loop();
+    Piano_loop();        // 电子琴模式
+    MusicPlayer_loop();  // 音乐模式
+    Record_loop();       // 录制模式
+    RecordPlayer_loop(); // 播放录制模式
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -136,7 +122,7 @@ int main(void) {
 }
 
 void Piano_loop(void) {
-  enum button_state_t bt_state_last = readPianoPin(); // 记录上一次的按钮状态
+  enum button_state_t bt_state_last = kNone; // 记录上一次的按钮状态
   uint32_t button_menu_tick = 0; // 记录上一次的menu按钮按下的时间
   enum note_offset_t note_offset = kOffsetMiddle; // 音符偏移，默认中音
 
@@ -154,6 +140,16 @@ void Piano_loop(void) {
       if (bt_state_last !=
           bt_state_now) { // 如果上一次没有按下menu按钮，说明这是刚按下menu按钮
         button_menu_tick = HAL_GetTick(); // 重置menu按钮计数器为当前时间
+      }
+      if (bt_state_last == kMenu && (HAL_GetTick() - button_menu_tick) > 300) {
+        // 大于300ms说明是长按
+        // 切换界面状态
+        BUZZER_PlayNote(M1);
+        HAL_Delay(100);
+        BUZZER_Stop();
+        ssd1306_black_screen();
+        ssd1306_update_screen();
+        return;
       }
       break; // 菜单按钮逻辑
 
@@ -175,23 +171,13 @@ void Piano_loop(void) {
     default:
       if (bt_state_last ==
           kMenu) { // 如果上一个按钮状态是menu，说明松开了menu按钮
-        if ((HAL_GetTick() - button_menu_tick) > 300) { // 大于300ms说明是长按
-          // 切换界面状态
-          BUZZER_PlayNote(M1);
-          HAL_Delay(100);
-          BUZZER_Stop();
-          ssd1306_black_screen();
-          ssd1306_update_screen();
-          return;
-        } else {
-          // 切换高低音(低->中->高)
-          if (note_offset == kOffsetHigh) {
-            note_offset = kOffsetLow;
-          } else if (note_offset == kOffsetMiddle) {
-            note_offset = kOffsetHigh;
-          } else if (note_offset == kOffsetLow) {
-            note_offset = kOffsetMiddle;
-          }
+        // 切换高低音(低->中->高)
+        if (note_offset == kOffsetHigh) {
+          note_offset = kOffsetLow;
+        } else if (note_offset == kOffsetMiddle) {
+          note_offset = kOffsetHigh;
+        } else if (note_offset == kOffsetLow) {
+          note_offset = kOffsetMiddle;
         }
       }
       if (bt_state_last < 9 && bt_state_last > 0) {
@@ -200,6 +186,288 @@ void Piano_loop(void) {
         ssd1306_draw_black(16 * 2, 26); // 清除音符显示部分
         ssd1306_update_screen();
       }
+      break; // 其他情况逻辑
+    }
+    bt_state_last = bt_state_now;
+  }
+}
+
+void MusicPlayer_loop(void) {
+  enum button_state_t bt_state_last = kNone; // 记录上一次的按钮状态
+  uint32_t button_menu_tick = 0; // 记录上一次的menu按钮按下的时间
+  uint8_t is_music_play = 1;
+  struct music_sheet_t *music_note_sheet = &music_solitary_brave;
+  uint16_t note_counter = 0;
+  // uint32_t note_halt_tick = 0; // 记录上一音符开始休眠的时间
+
+  ssd1306_set_cursor(32, 0);
+  ssd1306_write_char_cn(fontCN16x16, 4);  // 音
+  ssd1306_write_char_cn(fontCN16x16, 10); // 乐
+  ssd1306_write_char_cn(fontCN16x16, 2);  // 模
+  ssd1306_write_char_cn(fontCN16x16, 3);  // 式
+
+  ssd1306_set_cursor(0, 48);
+  ssd1306_write_char_cn(fontCN16x16, 21); // 播放
+  ssd1306_write_char_cn(fontCN16x16, 22);
+
+  ssd1306_set_cursor(40, 16);
+  ssd1306_write_char_cn(fontCN16x16, 25); // 孤勇者
+  ssd1306_write_char_cn(fontCN16x16, 26);
+  ssd1306_write_char_cn(fontCN16x16, 27);
+  ssd1306_update_screen();
+
+  while (1) {
+    enum button_state_t bt_state_now = readPianoPin(); // 读取当前的按钮状态
+    switch (bt_state_now) {
+    case kMenu:
+      if (bt_state_last !=
+          bt_state_now) { // 如果上一次没有按下menu按钮，说明这是刚按下menu按钮
+        button_menu_tick = HAL_GetTick(); // 重置menu按钮计数器为当前时间
+      }
+      if (bt_state_last == kMenu && (HAL_GetTick() - button_menu_tick) > 300) {
+        // 大于300ms说明是长按
+        // 切换界面状态
+        BUZZER_PlayNote(M1);
+        HAL_Delay(100);
+        BUZZER_Stop();
+        ssd1306_black_screen();
+        ssd1306_update_screen();
+        return;
+      }
+      break; // 菜单按钮逻辑
+
+    case kBT1:                     // 暂停
+      if (bt_state_last != kBT1) { // 说明是刚按下状态
+        if (is_music_play) {
+          is_music_play = 0;
+          BUZZER_Stop();
+          ssd1306_set_cursor(0, 48);
+          ssd1306_write_char_cn(fontCN16x16, 23); // 暂停
+          ssd1306_write_char_cn(fontCN16x16, 24); // 暂停
+          ssd1306_update_screen();
+        } else {
+          is_music_play = 1;
+          ssd1306_set_cursor(0, 48);
+          ssd1306_write_char_cn(fontCN16x16, 21); // 播放
+          ssd1306_write_char_cn(fontCN16x16, 22); // 播放
+          ssd1306_update_screen();
+        }
+      }
+      break;
+
+    case kBT2:
+    case kBT3:
+    case kBT4:
+    case kBT5:
+    case kBT6:
+    case kBT7:
+    case kBT8:
+    case kNone:
+    default:
+      if (bt_state_last ==
+          kMenu) { // 如果上一个按钮状态是menu，说明松开了menu按钮
+        // 切歌
+        if (music_note_sheet == &music_solitary_brave) {
+          note_counter = 0;
+          music_note_sheet = &music_xiaoxingxing;
+          ssd1306_set_cursor(40, 16);
+          ssd1306_write_char_cn(fontCN16x16, 11); // 小星星
+          ssd1306_write_char_cn(fontCN16x16, 12);
+          ssd1306_write_char_cn(fontCN16x16, 12);
+          ssd1306_update_screen();
+        } else {
+          note_counter = 0;
+          music_note_sheet = &music_solitary_brave;
+          ssd1306_set_cursor(40, 16);
+          ssd1306_write_char_cn(fontCN16x16, 25); // 孤勇者
+          ssd1306_write_char_cn(fontCN16x16, 26);
+          ssd1306_write_char_cn(fontCN16x16, 27);
+          ssd1306_update_screen();
+        }
+        break;
+      }
+
+      if (is_music_play) {
+        if (note_counter >
+            music_note_sheet->length - 1) { // 如果超出乐谱长度，从头开始演奏
+          note_counter = 0;
+        }
+        BUZZER_PlayNote(music_note_sheet->note_sheet[note_counter * 2]);
+        HAL_Delay(5 * music_note_sheet->note_sheet[note_counter * 2 + 1]);
+        note_counter++;
+      }
+
+      break; // 其他情况逻辑
+    }
+    bt_state_last = bt_state_now;
+  }
+}
+
+void Record_loop(void) {
+  enum button_state_t bt_state_last = kNone; // 记录上一次的按钮状态
+  uint32_t button_menu_tick = 0; // 记录上一次的menu按钮按下的时间
+  uint32_t button_buzzer_tick = 0; // 记录上一次的menu按钮按下的时间
+  enum note_offset_t note_offset = kOffsetMiddle; // 音符偏移，默认中音
+  uint16_t record_note_counter = 0;
+
+  ssd1306_set_cursor(32, 0);
+  ssd1306_write_char_cn(fontCN16x16, 13); // 录制模式
+  ssd1306_write_char_cn(fontCN16x16, 14);
+  ssd1306_write_char_cn(fontCN16x16, 2);
+  ssd1306_write_char_cn(fontCN16x16, 3);
+  ssd1306_update_screen();
+
+  while (1) {
+    enum button_state_t bt_state_now = readPianoPin(); // 读取当前的按钮状态
+    switch (bt_state_now) {
+    case kMenu:
+      if (bt_state_last !=
+          bt_state_now) { // 如果上一次没有按下menu按钮，说明这是刚按下menu按钮
+        button_menu_tick = HAL_GetTick(); // 重置menu按钮计数器为当前时间
+      }
+      if (bt_state_last == kMenu && (HAL_GetTick() - button_menu_tick) > 300) {
+        // 大于300ms说明是长按
+        // 切换界面状态
+        BUZZER_PlayNote(M1);
+        HAL_Delay(100);
+        BUZZER_Stop();
+        ssd1306_black_screen();
+        ssd1306_update_screen();
+        return;
+      }
+      break; // 菜单按钮逻辑
+
+    case kBT1:
+    case kBT2:
+    case kBT3:
+    case kBT4:
+    case kBT5:
+    case kBT6:
+    case kBT7:
+    case kBT8:
+      BUZZER_PlayNote(FreTab[bt_state_now + note_offset]);
+      button_buzzer_tick = HAL_GetTick();
+      record_note_sheet[record_note_counter * 2] =
+          FreTab[bt_state_now + note_offset];
+
+      ssd1306_set_cursor(32 + 16, 16 + 2);
+      ssd1306_write_string(font16x26, FreTabStr[bt_state_now + note_offset]);
+      ssd1306_update_screen();
+      break; // 钢琴按钮逻辑
+
+    case kNone:
+    default:
+      if (bt_state_last ==
+          kMenu) { // 如果上一个按钮状态是menu，说明松开了menu按钮
+        // 切换高低音(低->中->高)
+        if (note_offset == kOffsetHigh) {
+          note_offset = kOffsetLow;
+        } else if (note_offset == kOffsetMiddle) {
+          note_offset = kOffsetHigh;
+        } else if (note_offset == kOffsetLow) {
+          note_offset = kOffsetMiddle;
+        }
+      }
+      if (bt_state_last < 9 && bt_state_last > 0) {
+        BUZZER_Stop();
+        record_note_sheet[record_note_counter * 2 + 1] =
+            HAL_GetTick() - button_buzzer_tick;
+        record_note_counter++;
+        ssd1306_set_cursor(32 + 16, 16 + 2);
+        ssd1306_draw_black(16 * 2, 26); // 清除音符显示部分
+        ssd1306_update_screen();
+      }
+      break; // 其他情况逻辑
+    }
+    bt_state_last = bt_state_now;
+  }
+}
+
+void RecordPlayer_loop(void) {
+  if (record_note_sheet[0] == 0) { // 如果没有录制歌曲则退出
+    return;
+  }
+  enum button_state_t bt_state_last = kNone; // 记录上一次的按钮状态
+  uint32_t button_menu_tick = 0; // 记录上一次的menu按钮按下的时间
+  uint8_t is_music_play = 1;
+  uint16_t note_counter = 0;
+
+  ssd1306_set_cursor(16, 0);
+  ssd1306_write_char_cn(fontCN16x16, 13); // 录制播放模式
+  ssd1306_write_char_cn(fontCN16x16, 14);
+  ssd1306_write_char_cn(fontCN16x16, 21);
+  ssd1306_write_char_cn(fontCN16x16, 22);
+  ssd1306_write_char_cn(fontCN16x16, 2);
+  ssd1306_write_char_cn(fontCN16x16, 3);
+
+  ssd1306_set_cursor(0, 48);
+  ssd1306_write_char_cn(fontCN16x16, 21); // 播放
+  ssd1306_write_char_cn(fontCN16x16, 22);
+  ssd1306_update_screen();
+
+  while (1) {
+    enum button_state_t bt_state_now = readPianoPin(); // 读取当前的按钮状态
+    switch (bt_state_now) {
+    case kMenu:
+      if (bt_state_last !=
+          bt_state_now) { // 如果上一次没有按下menu按钮，说明这是刚按下menu按钮
+        button_menu_tick = HAL_GetTick(); // 重置menu按钮计数器为当前时间
+      }
+      if (bt_state_last == kMenu && (HAL_GetTick() - button_menu_tick) > 300) {
+        // 大于300ms说明是长按
+        // 切换界面状态
+        BUZZER_PlayNote(M1);
+        HAL_Delay(100);
+        BUZZER_Stop();
+        ssd1306_black_screen();
+        ssd1306_update_screen();
+        return;
+      }
+      break; // 菜单按钮逻辑
+
+    case kBT1:                     // 暂停
+      if (bt_state_last != kBT1) { // 说明是刚按下状态
+        if (is_music_play) {
+          is_music_play = 0;
+          BUZZER_Stop();
+          ssd1306_set_cursor(0, 48);
+          ssd1306_write_char_cn(fontCN16x16, 23); // 暂停
+          ssd1306_write_char_cn(fontCN16x16, 24);
+          ssd1306_update_screen();
+        } else {
+          is_music_play = 1;
+          ssd1306_set_cursor(0, 48);
+          ssd1306_write_char_cn(fontCN16x16, 21); // 播放
+          ssd1306_write_char_cn(fontCN16x16, 22);
+          ssd1306_update_screen();
+        }
+      }
+      break;
+
+    case kBT2:
+    case kBT3:
+    case kBT4:
+    case kBT5:
+    case kBT6:
+    case kBT7:
+    case kBT8:
+    case kNone:
+    default:
+      if (bt_state_last ==
+          kMenu) { // 如果上一个按钮状态是menu，说明松开了menu按钮
+        // 切歌
+        break;
+      }
+
+      if (is_music_play) {
+        if (note_counter > 127) { // 如果超出乐谱长度，从头开始演奏
+          note_counter = 0;
+        }
+        BUZZER_PlayNote(record_note_sheet[note_counter * 2]);
+        HAL_Delay(10 * record_note_sheet[note_counter * 2 + 1]);
+        note_counter++;
+      }
+
       break; // 其他情况逻辑
     }
     bt_state_last = bt_state_now;

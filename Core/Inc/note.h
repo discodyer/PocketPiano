@@ -1,9 +1,12 @@
 #ifndef __NOTE_H
 #define __NOTE_H
 
+#include "note.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <stdint.h>
 
 #define PROPORT 72000 // Tclk/(arr+1)=72000000/(1000)
 
@@ -49,15 +52,161 @@ extern "C" {
 #define H7 ((PROPORT / 1976) - 1)  // 高调　si 的频率
 #define H8 ((PROPORT / 2093) - 1)  // 高调　do## 的频率
 
-#define Z0 0 //
+#define Z0 0
 
-unsigned int FreTab[] = {L1, L2, L3, L4, L5, L6, L7, M1, M2, M3, M4,
-                         M5, M6, M7, H1, H2, H3, H4, H5, H6, H7, H8};
-char FreTabStr[][3] = {"L1", "L2", "L3", "L4", "L5", "L6", "L7", "M1",
-                       "M2", "M3", "M4", "M5", "M6", "M7", "H1", "H2",
-                       "H3", "H4", "H5", "H6", "H7", "H8"};
+unsigned int FreTab[] = {L1, L2, L3, L4, L5, L6, L7, 
+                         M1, M2, M3, M4,M5, M6, M7, 
+                         H1, H2, H3, H4, H5, H6, H7, H8};
+char FreTabStr[][3] = {"L1", "L2", "L3", "L4", "L5", "L6", "L7", 
+                       "M1", "M2", "M3", "M4", "M5", "M6", "M7", 
+                       "H1", "H2","H3", "H4", "H5", "H6", "H7", "H8"};
 
 enum note_offset_t { kOffsetLow = -1, kOffsetMiddle = 6, kOffsetHigh = 13 };
+
+struct music_sheet_t
+{
+    const uint16_t* note_sheet;
+    const uint16_t length;
+};
+
+#define NOTE_INCLUDE_SOLITARY_BRAVE
+#define NOTE_INCLUDE_XIAOXINGXING
+
+#ifdef NOTE_INCLUDE_SOLITARY_BRAVE
+const uint16_t note_solitary_brave[] = {
+    M6, 50, 
+    M7, 50, 
+    H1, 50, 
+    H2, 50, 
+    M7, 50, 
+    H1, 50, 
+    H1, 100, 
+    Z0, 10, // 爱你孤身走暗巷
+    H1, 50, 
+    M7, 50, 
+    H1, 50, 
+    H2, 50, 
+    M7, 50, 
+    H1, 50, 
+    H1, 100, 
+    Z0, 10, // 爱你不跪的模样
+    H1, 50, 
+    H2, 50, 
+    H3, 50, 
+    H2, 50, 
+    H3, 50, 
+    H2, 50, 
+    H3, 100, 
+    H3, 50, 
+    H3, 50, 
+    H2, 50, 
+    H3, 100, 
+    H5, 100, 
+    H3, 100, 
+    Z0, 10, // 爱你对峙过绝望不肯哭一场
+};
+#endif
+
+#ifdef NOTE_INCLUDE_XIAOXINGXING
+const uint16_t note_xiaoxingxing[] = {
+    H1, 50, 
+    Z0, 10, 
+    H1, 50, 
+    Z0, 10, 
+    H5, 50, 
+    Z0, 10, 
+    H5, 50, 
+    Z0, 10, 
+    H6, 50, 
+    Z0, 10, 
+    H6, 50, 
+    Z0, 10, 
+    H5, 100, 
+    Z0, 10, 
+    H4, 50, 
+    Z0, 10, 
+    H4, 50, 
+    Z0, 10, 
+    H3, 50, 
+    Z0, 10, 
+    H3, 50, 
+    Z0, 10, 
+    H2, 50, 
+    Z0, 10, 
+    H2, 50, 
+    Z0, 10, 
+    H1, 100, 
+    Z0, 10, 
+
+    H5, 50, 
+    Z0, 10, 
+    H5, 50, 
+    Z0, 10, 
+    H4, 50, 
+    Z0, 10, 
+    H4, 50, 
+    Z0, 10, 
+    H3, 50, 
+    Z0, 10, 
+    H3, 50, 
+    Z0, 10, 
+    H2, 100, 
+    Z0, 10, 
+
+    H5, 50, 
+    Z0, 10, 
+    H5, 50, 
+    Z0, 10, 
+    H4, 50, 
+    Z0, 10, 
+    H4, 50, 
+    Z0, 10, 
+    H3, 50, 
+    Z0, 10, 
+    H3, 50, 
+    Z0, 10, 
+    H2, 100, 
+    Z0, 10, 
+
+    H1, 50, 
+    Z0, 10, 
+    H1, 50, 
+    Z0, 10, 
+    H5, 50, 
+    Z0, 10, 
+    H5, 50, 
+    Z0, 10, 
+    H6, 50, 
+    Z0, 10, 
+    H6, 50, 
+    Z0, 10, 
+    H5, 100, 
+    Z0, 10, 
+    H4, 50, 
+    Z0, 10, 
+    H4, 50, 
+    Z0, 10, 
+    H3, 50, 
+    Z0, 10, 
+    H3, 50, 
+    Z0, 10, 
+    H2, 50, 
+    Z0, 10, 
+    H2, 50, 
+    Z0, 10, 
+    H1, 100, 
+    Z0, 100, 
+
+};
+#endif
+
+#ifdef NOTE_INCLUDE_SOLITARY_BRAVE
+struct music_sheet_t music_solitary_brave = {note_solitary_brave, (sizeof(note_solitary_brave) / sizeof(note_solitary_brave[0])) / 2};
+#endif
+
+#ifdef NOTE_INCLUDE_XIAOXINGXING
+struct music_sheet_t music_xiaoxingxing = {note_xiaoxingxing, (sizeof(note_xiaoxingxing) / sizeof(note_xiaoxingxing[0])) / 2};
+#endif
 
 #ifdef __cplusplus
 }

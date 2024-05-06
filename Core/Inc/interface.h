@@ -30,11 +30,6 @@ enum button_state_t{
     kMenu,
 };
 
-struct user_interface_t
-{
-    volatile enum ui_state_t f_state_ui;
-} GUI;
-
 uint8_t readPianoPin(void)
 {
     if (!HAL_GPIO_ReadPin(BT_MENU_GPIO_Port, BT_MENU_Pin)) {
