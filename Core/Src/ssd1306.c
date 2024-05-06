@@ -302,3 +302,18 @@ uint16_t ssd1306_write_char_cn(SSD1306_CN_FONT font, uint16_t ch) {
   // Return written char for validation
   return ch;
 }
+
+void ssd1306_draw_black(uint16_t width, uint16_t height) {
+  // Check remaining space on current line
+  if (SSD1306_WIDTH < (cursor.x + width) ||
+      SSD1306_HEIGHT < (cursor.y + height)) {
+    // Not enough space on current line
+    return;
+  }
+
+  for (int i=0; i<width; i++) {
+    for (int j=0; j<height; j++) {
+      ssd1306_black_pixel(cursor.x + i, cursor.y + j);
+    }
+  }
+}

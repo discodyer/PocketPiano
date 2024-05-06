@@ -208,6 +208,7 @@ void ssd1306_white_pixel(uint8_t x, uint8_t y);
 
 char ssd1306_write_char(SSD1306_FONT font, char ch);
 uint16_t ssd1306_write_char_cn(SSD1306_CN_FONT font, uint16_t ch);
+void ssd1306_draw_black(uint16_t width, uint16_t height);
 char ssd1306_write_string(SSD1306_FONT font, char *str);
 
 // Set current cursor

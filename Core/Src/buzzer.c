@@ -1,4 +1,5 @@
 #include "buzzer.h"
+#include "stm32_hal_legacy.h"
 #include "stm32f1xx_hal.h"
 #include "stm32f1xx_hal_tim.h"
 #include <stdint.h>
@@ -49,6 +50,9 @@ void BUZZER_PlayNote(uint32_t note) {
     // BUZZER_Fadeout();
     return;
   }
-  BUZZER_SetNote(note);
+  if (__HAL_TIM_GetICPrescaler(BUZZER_TIM, note) !=
+      note) {             // 判断上一个音符和当前的有没有区别
+    BUZZER_SetNote(note); // 修改音符
+  }
   BUZZER_Start();
 }

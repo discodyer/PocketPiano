@@ -53,6 +53,11 @@ extern "C" {
 
 unsigned int FreTab[] = {L1, L2, L3, L4, L5, L6, L7, M1, M2, M3, M4,
                          M5, M6, M7, H1, H2, H3, H4, H5, H6, H7, H8};
+char FreTabStr[][3] = {"L1", "L2", "L3", "L4", "L5", "L6", "L7", "M1",
+                       "M2", "M3", "M4", "M5", "M6", "M7", "H1", "H2",
+                       "H3", "H4", "H5", "H6", "H7", "H8"};
+
+enum note_offset_t { kOffsetLow = -1, kOffsetMiddle = 6, kOffsetHigh = 13 };
 
 #ifdef __cplusplus
 }

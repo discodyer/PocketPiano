@@ -17,6 +17,19 @@ enum ui_state_t{
     kStateNone
 };
 
+enum button_state_t{
+    kNone,
+    kBT1 = 1,
+    kBT2 = 2,
+    kBT3 = 3,
+    kBT4 = 4,
+    kBT5 = 5,
+    kBT6 = 6,
+    kBT7 = 7,
+    kBT8 = 8,
+    kMenu,
+};
+
 struct user_interface_t
 {
     volatile enum ui_state_t f_state_ui;
@@ -24,31 +37,34 @@ struct user_interface_t
 
 uint8_t readPianoPin(void)
 {
+    if (!HAL_GPIO_ReadPin(BT_MENU_GPIO_Port, BT_MENU_Pin)) {
+    return kMenu;
+    }
     if (!HAL_GPIO_ReadPin(BT1_GPIO_Port, BT1_Pin)) {
-    return 1;
+    return kBT1;
     }
     if (!HAL_GPIO_ReadPin(BT2_GPIO_Port, BT2_Pin)) {
-    return 2;
+    return kBT2;
     }
     if (!HAL_GPIO_ReadPin(BT3_GPIO_Port, BT3_Pin)) {
-    return 3;
+    return kBT3;
     }
     if (!HAL_GPIO_ReadPin(BT4_GPIO_Port, BT4_Pin)) {
-    return 4;
+    return kBT4;
     }
     if (!HAL_GPIO_ReadPin(BT5_GPIO_Port, BT5_Pin)) {
-    return 5;
+    return kBT5;
     }
     if (!HAL_GPIO_ReadPin(BT6_GPIO_Port, BT6_Pin)) {
-    return 6;
+    return kBT6;
     }
     if (!HAL_GPIO_ReadPin(BT7_GPIO_Port, BT7_Pin)) {
-    return 7;
+    return kBT7;
     }
     if (!HAL_GPIO_ReadPin(BT8_GPIO_Port, BT8_Pin)) {
-    return 8;
+    return kBT8;
     }
-    return 0;
+    return kNone;
 }
 
 #ifdef __cplusplus

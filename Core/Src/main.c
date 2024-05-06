@@ -21,6 +21,7 @@
 #include "gpio.h"
 #include "i2c.h"
 #include "ssd1306_font.h"
+#include "stm32f1xx_hal.h"
 #include "tim.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -29,6 +30,7 @@
 #include "interface.h"
 #include "note.h"
 #include "ssd1306.h"
+#include <stdint.h>
 
 /* USER CODE END Includes */
 
@@ -56,7 +58,7 @@ extern struct user_interface_t GUI;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void Piano_loop(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -118,24 +120,90 @@ int main(void) {
   BUZZER_SetLoudness(100);
   // Solitary_brave();
 
-  
   ssd1306_init();
-  
-  ssd1306_set_cursor(0, 16);
-  ssd1306_write_char_cn(fontCN16x16, 10);
-  // ssd1306_write_string(font6x8, "ABC");
 
-  ssd1306_update_screen();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
+    Piano_loop();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
+}
+
+void Piano_loop(void) {
+  enum button_state_t bt_state_last = readPianoPin(); // 记录上一次的按钮状态
+  uint32_t button_menu_tick = 0; // 记录上一次的menu按钮按下的时间
+  enum note_offset_t note_offset = kOffsetMiddle; // 音符偏移，默认中音
+
+  ssd1306_set_cursor(32, 0);
+  ssd1306_write_char_cn(fontCN16x16, 0); // 钢
+  ssd1306_write_char_cn(fontCN16x16, 1); // 琴
+  ssd1306_write_char_cn(fontCN16x16, 2); // 模
+  ssd1306_write_char_cn(fontCN16x16, 3); // 式
+  ssd1306_update_screen();
+
+  while (1) {
+    enum button_state_t bt_state_now = readPianoPin(); // 读取当前的按钮状态
+    switch (bt_state_now) {
+    case kMenu:
+      if (bt_state_last !=
+          bt_state_now) { // 如果上一次没有按下menu按钮，说明这是刚按下menu按钮
+        button_menu_tick = HAL_GetTick(); // 重置menu按钮计数器为当前时间
+      }
+      break; // 菜单按钮逻辑
+
+    case kBT1:
+    case kBT2:
+    case kBT3:
+    case kBT4:
+    case kBT5:
+    case kBT6:
+    case kBT7:
+    case kBT8:
+      BUZZER_PlayNote(FreTab[bt_state_now + note_offset]);
+      ssd1306_set_cursor(32 + 16, 16 + 2);
+      ssd1306_write_string(font16x26, FreTabStr[bt_state_now + note_offset]);
+      ssd1306_update_screen();
+      break; // 钢琴按钮逻辑
+
+    case kNone:
+    default:
+      if (bt_state_last ==
+          kMenu) { // 如果上一个按钮状态是menu，说明松开了menu按钮
+        if ((HAL_GetTick() - button_menu_tick) > 300) { // 大于300ms说明是长按
+          // 切换界面状态
+          BUZZER_PlayNote(M1);
+          HAL_Delay(100);
+          BUZZER_Stop();
+          ssd1306_black_screen();
+          ssd1306_update_screen();
+          return;
+        } else {
+          // 切换高低音(低->中->高)
+          if (note_offset == kOffsetHigh) {
+            note_offset = kOffsetLow;
+          } else if (note_offset == kOffsetMiddle) {
+            note_offset = kOffsetHigh;
+          } else if (note_offset == kOffsetLow) {
+            note_offset = kOffsetMiddle;
+          }
+        }
+      }
+      if (bt_state_last < 9 && bt_state_last > 0) {
+        BUZZER_Stop();
+        ssd1306_set_cursor(32 + 16, 16 + 2);
+        ssd1306_draw_black(16 * 2, 26); // 清除音符显示部分
+        ssd1306_update_screen();
+      }
+      break; // 其他情况逻辑
+    }
+    bt_state_last = bt_state_now;
+  }
 }
 
 /**
