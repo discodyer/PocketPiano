@@ -265,17 +265,17 @@ void ssd1306_enter() {
 void ssd1306_space() { cursor.x += current_font.width; }
 
 uint16_t ssd1306_write_char_cn(SSD1306_CN_FONT font, uint16_t ch) {
-  // Check remaining space on current line
+  // 检测是否超出屏幕范围
   if (SSD1306_WIDTH < (cursor.x + font.width) ||
       SSD1306_HEIGHT < (cursor.y + font.height)) {
     // Not enough space on current line
     return 0;
   }
 
-  // Use the font to write
+  // 使用字库绘制字符
+  // 绘制上半部分字符
   for (int i = 0; i < font.width; i++) {
     uint8_t b = font.data[ch*2*32 + i];
-    
     for (int j = 0; j < 8; j++) {
       if (b & (0x01 << j)) {
         ssd1306_white_pixel(cursor.x + i, cursor.y + j);
@@ -284,7 +284,7 @@ uint16_t ssd1306_write_char_cn(SSD1306_CN_FONT font, uint16_t ch) {
       }
     }
   }
-
+  // 绘制下半部分字符
   for (int i = 0; i < font.width; i++) {
     uint8_t b = font.data[(ch*2+1)*32 + i];
     for (int j = 0; j < 8; j++) {
